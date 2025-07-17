@@ -27,6 +27,34 @@ export async function obtenerProductoPorId(req, res) {
   }
 }
 
+export async function obtenerProductosFiltrados(req, res) {
+  const { name, category } = req.query;
+  console.log('name:', name, 'category:', category);
+  if (!name && !category) {
+    return res.status(400).json({ message: 'Faltan parámetros de búsqueda' });
+  }
+  try {
+    let consulta;
+    if (!name && category) consulta = sql`WHERE "categoryId" = ${category}`;
+    else if (name && !category)
+      consulta = sql`WHERE name ILIKE '%' || ${name} || '%'`;
+    else
+      consulta = sql`WHERE name ILIKE '%' || ${name} || '%' AND "categoryId" = ${category}`;
+
+    const productos = await sql`SELECT * FROM products ${consulta}`;
+    const productosArray = [...productos];
+    if (productosArray.length === 0) {
+      return res
+        .status(404)
+        .json({ message: 'No se encontraron productos con esos filtros' });
+    }
+    res.json(productos);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Error al buscar productos por nombre' });
+  }
+}
+
 export async function crearProducto(req, res) {
   const { name, price, description, stock, categoria } = req.body;
   try {

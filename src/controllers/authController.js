@@ -1,5 +1,6 @@
 import sql from '../config/db.js';
 import { hash, verify } from 'argon2';
+import jwt from 'jsonwebtoken';
 
 export async function logIn(req, res) {
   const { email, password } = req.body;
@@ -10,7 +11,20 @@ export async function logIn(req, res) {
     const validPassword = await verify(usuario[0].password, password);
     if (!validPassword)
       return res.status(401).json({ message: 'Credenciales inválidas' });
-    res.json({ message: 'Inicio de sesión exitoso', usuario: usuario[0] });
+    const token = jwt.sign(
+      {
+        usuario: usuario[0],
+      },
+      'secret',
+      { expiresIn: '24h' }
+    );
+    res.cookie('token', jwt, {
+      httpOnly: true,
+      secure: true,
+      sameSite: 'Strict',
+      maxAge: 24 * 60 * 60 * 1000,
+    });
+    res.json({ message: 'Inicio de sesión exitoso', token });
   } catch (error) {
     console.error(error); // Esto muestra el error real en consola
     res.status(500).json({ error: 'Error al iniciar sesión' });
